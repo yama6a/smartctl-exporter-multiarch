@@ -3,6 +3,9 @@
 Multi-arch container image for [prometheus-community/smartctl_exporter][up], which upstream publishes for
 amd64 only. Their release tarballs already cover `linux/arm64`; this repackages the same binary, unmodified.
 
+A stopgap, not a fork. Tracked upstream in [#381][issue], fix proposed in [#380][pr]. I'll archive this repo
+once there's an official arm64 image.
+
 ```
 ghcr.io/yama6a/smartctl-exporter-multiarch:v0.14.0-1
 ```
@@ -55,3 +58,5 @@ make release    # create the GitHub release   (needs gh)
 
 [up]: https://github.com/prometheus-community/smartctl_exporter
 [chart]: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-smartctl-exporter
+[issue]: https://github.com/prometheus-community/smartctl_exporter/issues/381
+[pr]: https://github.com/prometheus-community/smartctl_exporter/pull/380
