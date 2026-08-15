@@ -1,0 +1,75 @@
+{
+  // Opens dependency-update PRs for every pin here. Which manager owns what:
+  //   github-actions  the workflows' action pins
+  //   customManagers  versions.env's upstream release and base image
+  // Cadence is the cron in .github/workflows/renovate.yaml, not an internal `schedule`, so a manual
+  // workflow_dispatch works too.
+  //
+  // A merged bump pushes to main, and .github/workflows/build.yaml watches versions.env, so the image
+  // rebuilds itself. It is fingerprint-guarded, so a bump that changes nothing resolvable builds nothing.
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    ":dependencyDashboard", // one issue listing every pending/failed update (needs repo Issues enabled)
+    "helpers:pinGitHubActionDigestsToSemver", // action pins carry a readable version alongside the digest
+  ],
+  prConcurrentLimit: 6,
+  prHourlyLimit: 0, // no hourly throttle
+  dependencyDashboardTitle: "Renovate dependency dashboard",
+
+  // Automerge through Renovate's own API call, not GitHub's native auto-merge, so the merge waits on the
+  // required CI checks and lands on a LATER run once they are green.
+  platformAutomerge: false,
+
+  customManagers: [
+    {
+      // Images annotated `# renovate: datasource=docker` in shell-ish files, which no built-in manager reads.
+      // Captures repo:tag(+digest) from the ref itself, so tag AND digest stay fresh.
+      customType: "regex",
+      description: "docker image refs (annotated) in versions.env",
+      managerFilePatterns: ["/^versions\\.env$/"],
+      matchStrings: [
+        "# renovate: datasource=docker(?: versioning=(?<versioning>\\S+))?\\s+[^\\n]*?(?<depName>[a-z0-9][a-z0-9._/-]+):(?<currentValue>[\\w][\\w.-]*)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?",
+      ],
+      datasourceTemplate: "docker",
+    },
+    {
+      // Scalar vars in versions.env carrying a full `# renovate:` annotation.
+      customType: "regex",
+      description: "annotated version scalars in versions.env",
+      managerFilePatterns: ["/^versions\\.env$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+\\w+=\"(?<currentValue>[^\"]+)\"",
+      ],
+    },
+  ],
+
+  packageRules: [
+    {
+      // ONE combined, auto-merged PR for every NON-major update, gated on the required CI checks. Merging it
+      // triggers a rebuild, which is the intended loop: CI cannot prove the image still builds on both arches
+      // for a bump it has not seen, so a bad one surfaces as a red build workflow on main.
+      description: "combine all non-major updates into one auto-merged PR",
+      matchUpdateTypes: ["minor", "patch", "digest", "pin"],
+      groupName: "all non-major dependencies",
+      automerge: true,
+    },
+    {
+      // A major or minor upstream release can rename the release assets, move the binary inside the tarball
+      // or change the flags the chart passes. All three break the build or the consumer, not just the pin.
+      description: "smartctl_exporter minor and major: reviewed alone",
+      matchDepNames: ["prometheus-community/smartctl_exporter"],
+      matchUpdateTypes: ["major", "minor"],
+      groupName: null, // out of the combined group above, or it would block that PR's automerge
+      automerge: false,
+      addLabels: ["needs-review"],
+    },
+    {
+      // Pin action refs to commit digests, so a moving tag cannot swap the action's code under us. The
+      // semver-comment helper above keeps a readable version beside each digest.
+      description: "pin github action refs to digests",
+      matchManagers: ["github-actions"],
+      pinDigests: true,
+    },
+  ],
+}

@@ -1,0 +1,4 @@
+# Staged release assets, rebuilt every run.
+/.cache/
+
+.DS_Store
