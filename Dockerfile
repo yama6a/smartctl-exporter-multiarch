@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 # Repackages the upstream smartctl_exporter release binary for every arch buildx is asked for. Upstream's own
 # Dockerfile copies out of a local .build/<os>-<arch>/ tree that only exists inside their release pipeline;
 # fetching the published tarball per TARGETARCH is what lets one buildx run cover amd64 and arm64.
