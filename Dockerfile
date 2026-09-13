@@ -15,7 +15,6 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # Supplies /usr/sbin/smartctl, which the exporter shells out to for every reading.
 # No `=<version>` pin: the base image above is pinned by digest, which already fixes the whole package set.
 # A second pin here would just be a copy that goes stale on its own.
-# hadolint ignore=DL3018
 RUN apk add --no-cache smartmontools
 
 # Bare, no leading v: the release URL needs the tag (v0.14.0) and the asset name needs the plain number
