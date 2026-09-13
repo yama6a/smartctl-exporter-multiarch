@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
 usage() {
-  cat <<EOF
+  cat << EOF
 should_build.sh
   prints  build=true|false  plus a reason, and appends both to \$GITHUB_OUTPUT when CI set it
   FORCE=true  always answer true
@@ -14,7 +14,7 @@ EOF
 }
 
 # ---- state ----
-AUTH=()   # set by use_github_token, read by gh_get
+AUTH=() # set by use_github_token, read by gh_get
 
 # ---- functions ----
 
@@ -36,21 +36,25 @@ decide() {
 # an upstream version, and pipefail turns that into a silent build failure.
 newest_release_tag() {
   local releases
-  releases="$(gh_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" 2>/dev/null || true)"
+  releases="$(gh_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" 2> /dev/null || true)"
   printf '%s' "$releases" | jq -r --arg t "$SMARTCTL_EXPORTER_VERSION" \
     '[.[]?.tag_name // empty | select(startswith($t + "-"))
       | select((ltrimstr($t + "-")) | test("^[0-9]+$"))]
-     | sort_by(ltrimstr($t + "-") | tonumber) | last // ""' 2>/dev/null
+     | sort_by(ltrimstr($t + "-") | tonumber) | last // ""' 2> /dev/null
 }
 
 published_fingerprint() {
-  gh_get "https://github.com/${GITHUB_REPOSITORY}/releases/download/${1}/build-inputs.json" 2>/dev/null \
-    | jq -r '.fingerprint // ""' 2>/dev/null || true
+  gh_get "https://github.com/${GITHUB_REPOSITORY}/releases/download/${1}/build-inputs.json" 2> /dev/null \
+    | jq -r '.fingerprint // ""' 2> /dev/null || true
 }
 
 # ---- main ----
 
-case "${1:-}" in -h|--help) usage; exit 0 ;; esac
+case "${1:-}" in -h | --help)
+  usage
+  exit 0
+  ;;
+esac
 
 require curl jq
 compute_fingerprint
