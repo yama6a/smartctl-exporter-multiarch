@@ -1,0 +1,2 @@
+# shfmt -i 2 -ci -bn -sr over lib/, no behaviour change
+01dacff2126f56f28fe743fbd97f57c9f5aa1407

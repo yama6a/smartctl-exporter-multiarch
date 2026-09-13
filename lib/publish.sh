@@ -10,8 +10,8 @@ source "${SCRIPT_DIR}/common.sh"
 # ---- state ----
 # GHCR_USER is deliberately NOT pre-declared: it may come from the environment, and an empty default here
 # would make the ${GHCR_USER:-...} fallback below always win.
-RELEASE_TAG=""    # set by resolve_build_revision
-DIGEST=""         # set by build_and_push
+RELEASE_TAG="" # set by resolve_build_revision
+DIGEST=""      # set by build_and_push
 
 # ---- functions ----
 
@@ -29,16 +29,17 @@ resolve_build_revision() {
   say "resolving the build revision"
   [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
   releases="$(curl -fsSL --retry 3 ${auth[@]+"${auth[@]}"} \
-    "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" 2>/dev/null || true)"
+    "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" 2> /dev/null || true)"
   # All in jq: `... | grep | sort | tail` exits 1 when nothing matches, the NORMAL case for the first release
   # of an upstream version, and pipefail turns that into a silent build failure.
   existing="$(printf '%s' "$releases" | jq -r --arg t "$SMARTCTL_EXPORTER_VERSION" \
     '[.[]?.tag_name // empty | select(startswith($t + "-")) | ltrimstr($t + "-")
-      | select(test("^[0-9]+$")) | tonumber] | max // 0' 2>/dev/null || echo 0)"
+      | select(test("^[0-9]+$")) | tonumber] | max // 0' 2> /dev/null || echo 0)"
   [ -n "$existing" ] || existing=0
-  revision=$(( existing + 1 ))
+  revision=$((existing + 1))
   RELEASE_TAG="${SMARTCTL_EXPORTER_VERSION}-${revision}"
-  if [ "$existing" -eq 0 ]; then echo "   ${RELEASE_TAG}  (first release for ${SMARTCTL_EXPORTER_VERSION})"
+  if [ "$existing" -eq 0 ]; then
+    echo "   ${RELEASE_TAG}  (first release for ${SMARTCTL_EXPORTER_VERSION})"
   else echo "   ${RELEASE_TAG}  (previous: ${SMARTCTL_EXPORTER_VERSION}-${existing})"; fi
 }
 
@@ -47,7 +48,7 @@ resolve_build_revision() {
 build_and_push() {
   local cache_args=() tag_args=() t
   say "building and pushing ${PLATFORMS}"
-  printf '%s' "$GHCR_TOKEN" | docker login "$GHCR_SERVER" -u "$GHCR_USER" --password-stdin >/dev/null \
+  printf '%s' "$GHCR_TOKEN" | docker login "$GHCR_SERVER" -u "$GHCR_USER" --password-stdin > /dev/null \
     || die "docker login ${GHCR_SERVER} failed (is the token write:packages for ${GHCR_USER}?)"
   # In CI the runner is thrown away, and the provenance attestation step needs the session to push the
   # attestation to the registry, so only a real machine logs out.
@@ -76,7 +77,7 @@ build_and_push() {
 # Generated, not hand-written: every pin that produced this image, so a reader can reproduce it without
 # cloning anything.
 write_release_notes() {
-cat > "${OUT_DIR}/release-notes.md" <<EOF
+  cat > "${OUT_DIR}/release-notes.md" << EOF
 Multi-arch (${PLATFORMS}) build of [smartctl_exporter ${SMARTCTL_EXPORTER_VERSION}](https://github.com/prometheus-community/smartctl_exporter/releases/tag/${SMARTCTL_EXPORTER_VERSION}).
 
 Upstream publishes an amd64-only container image. This repackages their own release binary, unmodified, for
@@ -107,7 +108,7 @@ EOF
 }
 
 write_release_env() {
-cat > "${OUT_DIR}/release.env" <<EOF
+  cat > "${OUT_DIR}/release.env" << EOF
 RELEASE_TAG="${RELEASE_TAG}"
 IMAGE_DIGEST="${DIGEST}"
 IMAGE_REF="${IMAGE_REPO}:${RELEASE_TAG}"
