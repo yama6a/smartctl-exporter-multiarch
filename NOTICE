@@ -1,0 +1,38 @@
+NOTICE
+======
+
+LICENSE covers this repository's own contents: the Dockerfile, the build scripts, the Makefile, the workflows
+and the docs. Nothing upstream is vendored here; every dependency is fetched at build time.
+
+This file covers the ARTIFACT the repository publishes, namely the container image
+(ghcr.io/yama6a/smartctl-exporter-multiarch). That image is an aggregate of separately licensed works, and
+each keeps its own license.
+
+
+Components of the published image
+---------------------------------
+
+  smartctl_exporter            Apache-2.0
+    Source:  https://github.com/prometheus-community/smartctl_exporter at the tag named in the release's
+             build-inputs.json. The published release binary is repackaged unmodified.
+
+  smartmontools                GPL-2.0-or-later
+    Source:  https://builds.sr.ht/~smartmontools or https://github.com/smartmontools/smartmontools
+             Installed from the Alpine `smartmontools` package. Alpine's build recipe (APKBUILD) and the
+             upstream tarball it fetches are at
+             https://gitlab.alpinelinux.org/alpine/aports/-/tree/master/community/smartmontools
+    Written offer: the corresponding source for the smartmontools binaries in a published image is the
+             upstream release identified by `apk info -v smartmontools` inside that image, obtainable from
+             the URLs above.
+
+  Alpine Linux base image      MIT and others, per package
+    Source:  https://gitlab.alpinelinux.org/alpine/aports
+             The exact base is digest-pinned in versions.env and recorded in each release's
+             build-inputs.json.
+
+
+Trademarks
+----------
+
+Prometheus is a trademark of The Linux Foundation. This repository is not affiliated with, nor endorsed by,
+the Prometheus project or prometheus-community.

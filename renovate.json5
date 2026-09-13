@@ -1,0 +1,54 @@
+{
+  // Opens dependency-update PRs for every pin here. Which manager owns what:
+  //   github-actions  the workflows' action pins
+  //   customManagers  versions.env's upstream release and base image
+  // Cadence is the cron in .github/workflows/renovate.yaml, not an internal `schedule`, so a manual
+  // workflow_dispatch works too.
+  //
+  // The shared preset carries the grouping, automerge and digest-pinning rules. Only what is specific
+  // to this repo lives below.
+  // A merged bump pushes to main, and .github/workflows/build.yaml watches versions.env, so the image
+  // rebuilds itself. It is fingerprint-guarded, so a bump that changes nothing resolvable builds nothing.
+  // CI cannot prove the image still builds on both arches for a bump it has not seen, so a bad one
+  // surfaces as a red build workflow on main.
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["github>yama6a/gha:default.json5"],
+
+  prConcurrentLimit: 6,
+
+  customManagers: [
+    {
+      // Images annotated `# renovate: datasource=docker` in shell-ish files, which no built-in manager reads.
+      // Captures repo:tag(+digest) from the ref itself, so tag AND digest stay fresh.
+      customType: "regex",
+      description: "docker image refs (annotated) in versions.env",
+      managerFilePatterns: ["/^versions\\.env$/"],
+      matchStrings: [
+        "# renovate: datasource=docker(?: versioning=(?<versioning>\\S+))?\\s+[^\\n]*?(?<depName>[a-z0-9][a-z0-9._/-]+):(?<currentValue>[\\w][\\w.-]*)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?",
+      ],
+      datasourceTemplate: "docker",
+    },
+    {
+      // Scalar vars in versions.env carrying a full `# renovate:` annotation.
+      customType: "regex",
+      description: "annotated version scalars in versions.env",
+      managerFilePatterns: ["/^versions\\.env$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+\\w+=\"(?<currentValue>[^\"]+)\"",
+      ],
+    },
+  ],
+
+  packageRules: [
+    {
+      // A major or minor upstream release can rename the release assets, move the binary inside the tarball
+      // or change the flags the chart passes. All three break the build or the consumer, not just the pin.
+      description: "smartctl_exporter minor and major: reviewed alone",
+      matchDepNames: ["prometheus-community/smartctl_exporter"],
+      matchUpdateTypes: ["major", "minor"],
+      groupName: null, // out of the combined group, or it would block that PR's automerge
+      automerge: false,
+      addLabels: ["needs-review"],
+    },
+  ],
+}

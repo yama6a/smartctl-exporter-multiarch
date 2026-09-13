@@ -1,0 +1,54 @@
+# Static checks only. The image build is its own workflow and does not run on pull requests: a bad bump
+# surfaces as a red build workflow on main, where the guard and the revision resolver can see the releases.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    name: shell
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # -e SC2034 is "X appears unused", which fires on common.sh's shared constants. They ARE used,
+      # by the scripts that source it, but shellcheck reads one file at a time so it never sees the use.
+      - uses: yama6a/gha/.github/actions/shellcheck@v1
+        with:
+          glob: lib/*.sh
+          exclude: SC2034
+
+  docker:
+    name: docker
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: hadolint
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+
+  yaml:
+    name: yaml
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: yama6a/gha/.github/actions/yaml-checks@v1
+
+  renovate-config:
+    name: renovate-config
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A broken config silently halts ALL dependency updates.
+      - uses: yama6a/gha/.github/actions/validate-renovate-config@v1
+        with:
+          config-file: renovate.json5
