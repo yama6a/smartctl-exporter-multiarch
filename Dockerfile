@@ -1,10 +1,8 @@
 # syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-# Repackages the upstream smartctl_exporter release binary for every arch buildx is asked for. Upstream's own
-# Dockerfile copies out of a local .build/<os>-<arch>/ tree that only exists inside their release pipeline;
-# fetching the published tarball per TARGETARCH is what lets one buildx run cover amd64 and arm64.
+# Repackages the upstream smartctl_exporter release binary for each arch. Upstream's Dockerfile copies from a
+# build tree that exists only in their release pipeline, so this one downloads the release tarball per TARGETARCH.
 
-# No default: publish.sh and build.sh always pass it from versions.env, and a bare `docker build` should fail
-# rather than quietly produce an image on an unpinned base.
+# No default, so a bare `docker build` fails instead of building on an unpinned base. The scripts pass versions.env.
 ARG ALPINE_IMAGE
 FROM ${ALPINE_IMAGE}
 
@@ -12,22 +10,19 @@ LABEL org.opencontainers.image.source="https://github.com/yama6a/smartctl-export
 LABEL org.opencontainers.image.description="Multi-arch build of prometheus-community/smartctl_exporter"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-# Supplies /usr/sbin/smartctl, which the exporter shells out to for every reading.
-# No `=<version>` pin: the base image above is pinned by digest, which already fixes the whole package set.
-# A second pin here would just be a copy that goes stale on its own.
+# smartctl, which the exporter runs for every reading. The digest-pinned base already fixes its version.
 RUN apk add --no-cache smartmontools
 
-# Bare, no leading v: the release URL needs the tag (v0.14.0) and the asset name needs the plain number
-# (smartctl_exporter-0.14.0.linux-arm64.tar.gz). BuildKit cannot strip a prefix in a substitution, so
-# publish.sh passes the plain number and the `v` is written literally below.
+# The version without its leading v. The asset name needs the bare number, and BuildKit cannot strip a prefix,
+# so the release URL below adds the `v` back.
 ARG VERSION
 ARG TARGETARCH
 
 ADD https://github.com/prometheus-community/smartctl_exporter/releases/download/v${VERSION}/sha256sums.txt /tmp/sha256sums.txt
 ADD https://github.com/prometheus-community/smartctl_exporter/releases/download/v${VERSION}/smartctl_exporter-${VERSION}.linux-${TARGETARCH}.tar.gz /tmp/exporter.tar.gz
 
-# The checksum is per-arch, so `ADD --checksum=` cannot express it; grep the release's own sums file instead.
-# An empty `expected` means the asset name changed upstream, which must fail loudly rather than skip the check.
+# The checksum differs per arch, so `ADD --checksum=` cannot hold it. The release's sums file does.
+# An empty `expected` means upstream renamed the asset, so the build fails instead of skipping the check.
 RUN set -eux; \
     expected="$(awk -v f="smartctl_exporter-${VERSION}.linux-${TARGETARCH}.tar.gz" '$2 == f {print $1}' /tmp/sha256sums.txt)"; \
     [ -n "$expected" ]; \

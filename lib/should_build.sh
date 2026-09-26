@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Answers whether the pinned inputs differ from the newest published build of this upstream version.
+# Answers whether the pinned inputs differ from the newest build of this upstream version.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,8 +32,7 @@ decide() {
   exit 0
 }
 
-# All in jq: `... | grep | sort | tail` exits 1 when nothing matches, the NORMAL case for the first release of
-# an upstream version, and pipefail turns that into a silent build failure.
+# All in jq, because grep exits 1 on no match, which is normal for a first release, and pipefail fails the build.
 newest_release_tag() {
   local releases
   releases="$(gh_get "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" 2> /dev/null || true)"

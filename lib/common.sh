@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-#
-# Shared helpers for every script here. Source it near the top: it self-locates the repo root, loads the
-# committed versions.env, and derives what a flat file cannot hold.
-# It sets no shell options; each script keeps its own `set` line.
+# Shared helpers. Loads versions.env and derives what it cannot hold. Sets no shell options.
 
 [[ -n "${_COMMON_SH:-}" ]] && return
 _COMMON_SH=1
@@ -11,7 +8,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 VERSIONS_FILE="${REPO_ROOT}/versions.env"
 if [ ! -f "$VERSIONS_FILE" ]; then
-  # die() is not defined yet, so error raw.
+  # die() is not defined yet
   printf '\033[1;31mERROR: missing %s (committed recipe; it should be in the repo checkout)\033[0m\n' \
     "$VERSIONS_FILE" >&2
   exit 1
@@ -22,12 +19,11 @@ source "$VERSIONS_FILE"
 DOCKERFILE="${REPO_ROOT}/Dockerfile"
 PLATFORMS="linux/amd64,linux/arm64" # every architecture the consuming clusters run
 
-# The URL path uses the tag (v0.14.0); the asset filename uses the plain number. Dockerfile ARG substitution
-# cannot strip the prefix, so do it here and pass only the plain number.
+# The release asset name needs the version without its leading v, and a Dockerfile ARG cannot strip it.
 BIN_VERSION="${SMARTCTL_EXPORTER_VERSION#v}"
 
-# Lowercased because GHCR rejects uppercase, and derived from the repo slug so a fork publishes to its own
-# namespace with no edit. CI sets GITHUB_REPOSITORY; locally it falls back to upstream.
+# From the repo slug, so a fork publishes to its own namespace. Lowercased, because GHCR rejects uppercase.
+# CI sets GITHUB_REPOSITORY. Locally it falls back to this repo.
 GHCR_SERVER="ghcr.io"
 : "${GITHUB_REPOSITORY:=yama6a/smartctl-exporter-multiarch}"
 IMAGE_REPO="${GHCR_SERVER}/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
@@ -54,20 +50,17 @@ require() {
   done
 }
 
-# macOS ships `shasum` and no `sha256sum`; most Linux images ship both. Prefer the coreutils tool.
+# macOS ships `shasum` but no `sha256sum`.
 sha256() { if command -v sha256sum > /dev/null; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
 sha256hex() { sha256 "$@" | awk '{print $1}'; }
 
-# Everything that can change the published image, and nothing that cannot. should_build.sh compares this
-# against the newest release's build-inputs.json, so a pin that resolves to the same three values rebuilds
-# nothing. The Dockerfile is hashed rather than named because editing it changes the image with no pin moving.
+# Covers everything that can change the image. The Dockerfile is hashed, because an edit to it moves no pin.
 compute_fingerprint() {
   [ -f "$DOCKERFILE" ] || die "missing ${DOCKERFILE}"
   FINGERPRINT="$(printf '%s|%s|%s' \
     "$SMARTCTL_EXPORTER_VERSION" "$ALPINE_IMAGE" "$(sha256hex "$DOCKERFILE")" | sha256hex)"
 }
 
-# Both the build's input record and the release's provenance asset.
 write_inputs_file() {
   mkdir -p "$OUT_DIR"
   jq -n \
@@ -82,7 +75,7 @@ write_inputs_file() {
     > "${OUT_DIR}/build-inputs.json"
 }
 
-# gha cache only works inside Actions (it needs ACTIONS_RUNTIME_TOKEN); locally the flags just error.
+# The gha cache needs ACTIONS_RUNTIME_TOKEN, so it works only inside Actions. Locally the flags fail the build.
 buildx_cache_args() {
   [ -n "${GITHUB_ACTIONS:-}" ] || return 0
   printf '%s\n%s\n' '--cache-from=type=gha' '--cache-to=type=gha,mode=max'

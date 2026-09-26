@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Creates the GitHub release from the assets publish.sh staged. The release is what makes a build revision
-# real: should_build.sh and resolve_build_revision both read the release list, nothing else.
+# Creates the GitHub release from the assets publish.sh staged. The release list is the only record of a
+# build revision, so should_build.sh and publish.sh read nothing else.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,7 +16,7 @@ load_staged_release() {
 
 assert_release_absent() {
   if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-    die "release ${RELEASE_TAG} already exists; publish.sh should have picked the next revision"
+    die "release ${RELEASE_TAG} already exists. publish.sh should have picked the next revision."
   fi
 }
 
@@ -28,7 +28,7 @@ create_release() {
 }
 
 print_result() {
-  say "RELEASED"
+  say "released"
   echo "   https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
 }
 

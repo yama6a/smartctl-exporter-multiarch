@@ -2,9 +2,9 @@ NOTICE
 ======
 
 LICENSE covers this repository's own contents: the Dockerfile, the build scripts, the Makefile, the workflows
-and the docs. Nothing upstream is vendored here; every dependency is fetched at build time.
+and the docs. Nothing upstream is vendored here. Every dependency is fetched at build time.
 
-This file covers the ARTIFACT the repository publishes, namely the container image
+This file covers the artifact the repository publishes, namely the container image
 (ghcr.io/yama6a/smartctl-exporter-multiarch). That image is an aggregate of separately licensed works, and
 each keeps its own license.
 
