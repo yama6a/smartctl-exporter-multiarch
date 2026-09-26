@@ -4,7 +4,7 @@ name: build
 on:
   push:
     branches: [main]
-    paths: # everything that can change what gets built; docs and config cannot
+    paths: # everything that can change the image
       - versions.env
       - Dockerfile
       - lib/**
@@ -73,8 +73,7 @@ jobs:
           subject-digest: ${{ steps.publish.outputs.IMAGE_DIGEST }}
           push-to-registry: true
 
-      # Last on purpose: the release is what makes a build revision real. A run that dies before here leaves
-      # an image tag no release announced, and the next run reuses and overwrites that revision.
+      # Last, because the release is the only record of a build revision.
       - name: create the release
         if: steps.publish.outcome == 'success'
         run: make release

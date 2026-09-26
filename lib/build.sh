@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Builds every platform WITHOUT pushing, to prove the Dockerfile still works on both arches. This is what a
-# dry run exercises; the real build happens inside publish.sh, cheaply, off the same buildx cache.
+# Builds every platform without pushing, to prove the Dockerfile still works on both arches.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,8 +17,7 @@ echo "   fingerprint: ${FINGERPRINT:0:12}"
 
 mapfile -t CACHE_ARGS < <(buildx_cache_args)
 
-# cacheonly, not `--load`: buildx cannot load a multi-platform result into the local docker store, and the
-# point here is only to prove both arches compile.
+# cacheonly, because buildx cannot `--load` a multi-platform result into the local docker store.
 docker buildx build \
   --platform "$PLATFORMS" \
   --build-arg "ALPINE_IMAGE=${ALPINE_IMAGE}" \
@@ -28,4 +26,4 @@ docker buildx build \
   --output=type=cacheonly \
   "$REPO_ROOT"
 
-say "BUILD OK"
+say "build ok"

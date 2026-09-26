@@ -1,5 +1,4 @@
-# A thin dispatcher over lib/. Holds NO logic, versions or values: every target just runs the script it
-# names, so `make build` and `bash lib/build.sh` are identical. `make help` lists everything.
+# Each target runs one script in lib/, so `make build` and `bash lib/build.sh` are the same.
 
 .DEFAULT_GOAL := help
 
@@ -9,7 +8,7 @@ help: ## Display this help.
 
 ##@ Image
 .PHONY: guard
-guard: ## Print whether the pinned inputs differ from the newest published release. FORCE=true to override.
+guard: ## Print whether the pinned inputs differ from the newest release. FORCE=true always says yes.
 	bash lib/should_build.sh
 
 .PHONY: build
@@ -21,7 +20,7 @@ publish: ## Build and push the manifest list to GHCR, and stage the release asse
 	bash lib/publish.sh
 
 .PHONY: release
-release: ## Create the GitHub release from the staged assets. Run after publish; needs gh.
+release: ## Create the GitHub release from the staged assets. Run after publish. Needs gh.
 	bash lib/release.sh
 
 ##@ Housekeeping
